@@ -1,0 +1,9 @@
+{
+	"[json]": {
+		"editor.suggest.insertMode": "insert"
+	},
+	"vim.cursorStylePerMode.insert": "line",
+	"vim.startInInsertMode": true,
+	"vim.smartRelativeLine": true,
+	"python.analysis.typeCheckingMode": "off"
+}
