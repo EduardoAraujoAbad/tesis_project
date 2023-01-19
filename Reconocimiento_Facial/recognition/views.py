@@ -30,7 +30,6 @@ import seaborn as sns
 import pandas as pd
 from django.db.models import Count
 #import mpld3
-import matplotlib.pyplot as plt
 from pandas.plotting import register_matplotlib_converters
 from matplotlib import rcParams
 import math
@@ -178,44 +177,57 @@ def update_attendance_in_db_in(present):
     time = datetime.datetime.now()
 
     for person in present:
+        print("person in present")
+        print(person)
         user = User.objects.get(username=person)
         try:
-            qs = Present.objects.get(user=user, date=today)
+            qs = Present.objects.get(user=user, date=today, time=time)
         except:
             qs = None
 
         if qs is None:
             if present[person] == True:
-                a = Present(user=user, date=today, present=True)
+                a = Present(user=user, date=today, time=time, present=True)
                 # verifica el horario y tiempo
                 # if validate_time_entry(user):
+                print('primer save')
                 a.save()
                 # else:
                 # print('atraso')
 
             else:
-                a = Present(user=user, date=today, present=False)
+                a = Present(user=user, date=today, time=time, present=False)
+                print('Segundo save')
                 a.save()
 
         else:
             if present[person] == True:
-
-                qs.present = True
-
-                qs.save(update_fields=['present'])
+                # print("########")
+                #qs.present = True
+                # qs.save(update_fields=['present'])
+                # repitiendo el a.save() genera un nuevo registro pero con los mismos valores del anterior
+                a = Present(user=user, date=today, time=time, present=True)
+                a.save()
 
         if present[person] == True:
+            print("user")
+            print(user)
             a = Time(user=user, date=today, time=time, out=False)
+            print('tercer save')
             a.save()
+            print('a.id')
+            print(a)
 
 
 def update_attendance_in_db_out(present):
     today = datetime.date.today()
     time = datetime.datetime.now()
+
     for person in present:
         user = User.objects.get(username=person)
         if present[person] == True:
             a = Time(user=user, date=today, time=time, out=True)
+            print(a)
             # if validate_time_exit(user):
             a.save()
             # else:
@@ -277,21 +289,54 @@ def hours_vs_date_given_employee(present_qs, time_qs, admin=True):
     df_hours = []
     df_break_hours = []
     qs = present_qs
-
+    print("len-----------------------------")
+    print(len(qs))
     for obj in qs:
+        print('###########')
+        print(obj.id)
+        # print(type(obj))
         date = obj.date
-        times_in = time_qs.filter(date=date).filter(out=False).order_by('time')
-        times_out = time_qs.filter(date=date).filter(out=True).order_by('time')
+        print('*************')
+        print(obj.time)
+        print(obj.id)
+        print(obj.present)
+        print('*************')
+        #times_in = time_qs.filter(date=date).filter(out=False).order_by('time')
+        times_in = time_qs.filter(time=obj.time).filter(
+            out=False).order_by('time')
+        print('times_in')
+        print(times_in)
+        times_out = time_qs.filter(time__gt=obj.time).filter(
+            out=True).order_by('time')
+        # times_out = time_qs.filter(time__gt=obj.time).filter(
+        #    out=True).order_by('time')
+        print('times_out')
+        print(times_out)
         times_all = time_qs.filter(date=date).order_by('time')
+        print('times_all')
+        print(times_all)
         obj.time_in = None
         obj.time_out = None
         obj.hours = 0
         obj.break_hours = 0
         if (len(times_in) > 0):
-            obj.time_in = times_in.first().time
+            print('controla la entrada')
+            obj.time_in = times_in.last().time
+
+            print('obj.times in')
+            print(obj.time_in)
 
         if (len(times_out) > 0):
-            obj.time_out = times_out.last().time
+            print('controla salida')
+            obj.time_out = times_out[0].time
+            print("obj.time_out")
+            print(obj.time_out)
+            print(obj.id)
+            print(obj.time)
+            print("obj.time_out")
+
+        else:
+            print("No hay salida para el present")
 
         if (obj.time_in is not None and obj.time_out is not None):
             ti = obj.time_in
@@ -333,6 +378,9 @@ def hours_vs_date_given_employee(present_qs, time_qs, admin=True):
         plt.savefig(
             './recognition/static/recognition/img/attendance_graphs/employee_login/1.png')
         plt.close()
+    print("@@@@@@@@@")
+    for r in qs:
+        print(r)
     return qs
 
 
@@ -631,7 +679,8 @@ def mark_your_attendance(request):
 
     # destroying all the windows
     cv2.destroyAllWindows()
-
+    print("##############################")
+    print(present)
     update_attendance_in_db_in(present)
 
     return redirect('home')
@@ -730,6 +779,8 @@ def mark_your_attendance_out(request):
 
     # destroying all the windows
     cv2.destroyAllWindows()
+    print("mark out")
+
     update_attendance_in_db_out(present)
     return redirect('home')
 
@@ -841,7 +892,7 @@ def view_attendance_employee(request):
     time_qs = None
     present_qs = None
     qs = None
-
+    ('######')
     if request.method == 'POST':
         form = UsernameAndDateForm(request.POST)
 
@@ -876,11 +927,13 @@ def view_attendance_employee(request):
                     if (len(time_qs) > 0 or len(present_qs) > 0):
                         qs = hours_vs_date_given_employee(
                             present_qs, time_qs, admin=True)
+                        print("qs lane 904")
+                        print(qs)
                         return render(request, 'recognition/view_attendance_employee.html', {'form': form, 'qs': qs})
                     else:
                         #print("inside qs is None")
                         messages.warning(
-                            request, f'No records for selected duration.')
+                            request, f'No hay records en las fechas seleccionadas.')
                         return redirect('view-attendance-employee')
 
             else:
