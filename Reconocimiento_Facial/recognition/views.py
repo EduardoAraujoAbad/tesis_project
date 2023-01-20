@@ -41,7 +41,7 @@ from .funciones import validate_time_entry, validate_time_exit
 mpl.use('Agg')
 
 
-# utility functions:
+# Funcion global util
 def username_present(username):
     if User.objects.filter(username=username).exists():
         return True
@@ -55,53 +55,55 @@ def create_dataset(username):
         os.makedirs('face_recognition_data/training_dataset/{}/'.format(id))
     directory = 'face_recognition_data/training_dataset/{}/'.format(id)
 
-    # Detect face
-    # Loading the HOG face detector and the shape predictpr for allignment
+    # Deteccioon facial
+    # Carga del HOG de la deteccion facial y del modelo predictor
 
     print("[INFO] Cargando el detector Facial")
     detector = dlib.get_frontal_face_detector()
-    # Add path to the shape predictor ######CHANGE TO RELATIVE PATH LATER
+    # Se anade el predictor
     predictor = dlib.shape_predictor(
         'face_recognition_data/shape_predictor_68_face_landmarks.dat')
     fa = FaceAligner(predictor, desiredFaceWidth=96)
-    # capture images from the webcam and process and detect the face
-    # Initialize the video stream
+    # caputra imagenes desde la camara, las procesa y detecta los rostros
+    # Inicia la captura por video
     print("[INFO] Inicializando Video Captura")
-    vs = VideoStream(src=0).start()
-    # time.sleep(2.0) ####CHECK######
+    vs = VideoStream(src=1).start()
+    # Con src podemos cambiar el dispositivo de entrada 0 para una camara unica y
+    # n valores dependiendo del nuemro de la camara a usarse
 
-    # Our identifier
-    # We will put the id here and we will store the id with a face, so that later we can identify whose face it is
+    # El identificador
+    # Aqui se pondra el id y se guardara el rostro de acuerdo al id
 
-    # Our dataset naming counter
+    # Contador del etiquetado del dataset
     sampleNum = 0
-    # Capturing the faces one by one and detect the faces and showing it on the window
+    # Capturando los rostros uno por uno y la deteccion de rostros mientras se muestra en una ventana
     while (True):
-        # Capturing the image
-        # vs.read each frame
+        # Capturando imagen
+        # vs para cada frame
         frame = vs.read()
-        # Resize each image
+        # redimencionado de la imagen
         frame = imutils.resize(frame, width=800)
-        # the returned img is a colored image but for the classifier to work we need a greyscale image
-        # to convert
+        # la imagen que se retorna por camara es a color, para el clasificador se necesita una imagen a escala a grises
+        # para convertir de color a escala a grises
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # To store the faces
-        # This will detect all the images in the current frame, and it will return the coordinates of the faces
-        # Takes in image and some other parameter for accurate result
+        # para guardar los rostros
+        # Se detectaran todas las imagenes en el frame y estas retornaran las coordenadas de los rostros.
+        # Se toma una imagen y un parametro para medir el resultado
         faces = detector(gray_frame, 0)
-        # In above 'faces' variable there can be multiple faces so we have to get each and every face and draw a rectangle around it.
+        # dentro de la variable 'faces' puede haber multiples rostros entonces tenemos que capturar cada uno de ellos
+        # y dibujar un rectangulo alrededor
 
         for face in faces:
             print("iniciando ")
             (x, y, w, h) = face_utils.rect_to_bb(face)
 
             face_aligned = fa.align(frame, gray_frame, face)
-            # Whenever the program captures the face, we will write that is a folder
-            # Before capturing the face, we need to tell the script whose face it is
-            # For that we will need an identifier, here we call it id
-            # So now we captured a face, we need to write it in a file
+            # Siempre que el programa capture rostros, los escribira como si fueran una carpeta
+            # Antes de capturar los rostros, necesitamos hacerle saber al script de quien es cada rostro
+            # Para eo necesitamos un identificador
+            # ahora que se ha capturado un rostro, necesitamos transformalo en un archivo
             sampleNum = sampleNum+1
-            # Saving the image dataset, but only the face part, cropping the rest
+            # Se guarda la imagen en el dataset, pero solo el rostro, cortando el resto de la captura de imagen
 
             if face is None:
                 print("no se identifican rostros")
@@ -109,29 +111,26 @@ def create_dataset(username):
 
             cv2.imwrite(directory+'/'+str(sampleNum)+'.jpg', face_aligned)
             face_aligned = imutils.resize(face_aligned, width=400)
-            #cv2.imshow("Image Captured",face_aligned)
-            # @params the initial point of the rectangle will be x,y and
-            # @params end point will be x+width and y+height
-            # @params along with color of the rectangle
-            # @params thickness of the rectangle
+            # @params el punto inicial del rectangulo sera x e y y
+            # @params el punto final sera x+width e y+height
+            # @params conjunto va el color del marco
+            # @params espesor del marco
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 1)
-            # Before continuing to the next loop, I want to give it a little pause
-            # waitKey of 100 millisecond
             cv2.waitKey(50)
 
-        # Showing the image in another window
-        # Creates a window with window name "Face" and with the image img
-        cv2.imshow("Add Images", frame)
-        # Before closing it we need to give a wait command, otherwise the open cv wont work
-        # @params with the millisecond of delay 1
+        # Se muestra la imagen en otra ventana
+        # Se crea una ventana con el nombre Rostro y con una imgaen img
+        cv2.imshow("Anadir Imagenes", frame)
+        # Antes de cerrar la ventana necesitamos dar un comando de espera, por que si no open cv no funcionara
+        # @params una millonesima de segundo en un segundo
         cv2.waitKey(1)
-        # To get out of the loop
+        # Para salir del bucle
         if (sampleNum > 150):
             break
 
-    # Stoping the videostream
+    # Interrupcion del video
     vs.stop()
-    # destroying all the windows
+    # eliminacion de todas las ventanas
     cv2.destroyAllWindows()
 
 
@@ -202,21 +201,14 @@ def update_attendance_in_db_in(present):
 
         else:
             if present[person] == True:
-                # print("########")
-                #qs.present = True
-                # qs.save(update_fields=['present'])
-                # repitiendo el a.save() genera un nuevo registro pero con los mismos valores del anterior
-                a = Present(user=user, date=today, time=time, present=True)
-                a.save()
+                qs.present = True
+                qs.save(update_fields=['present'])
+                #a = Present(user=user, date=today, time=time, present=True)
+                # a.save()
 
         if present[person] == True:
-            print("user")
-            print(user)
             a = Time(user=user, date=today, time=time, out=False)
-            print('tercer save')
             a.save()
-            print('a.id')
-            print(a)
 
 
 def update_attendance_in_db_out(present):
@@ -231,7 +223,7 @@ def update_attendance_in_db_out(present):
             # if validate_time_exit(user):
             a.save()
             # else:
-            # print('atraso')
+            #    print('atraso')
 
 
 def check_validity_times(times_all):
@@ -289,32 +281,17 @@ def hours_vs_date_given_employee(present_qs, time_qs, admin=True):
     df_hours = []
     df_break_hours = []
     qs = present_qs
-    print("len-----------------------------")
-    print(len(qs))
     for obj in qs:
-        print('###########')
         print(obj.id)
-        # print(type(obj))
         date = obj.date
-        print('*************')
-        print(obj.time)
-        print(obj.id)
-        print(obj.present)
-        print('*************')
-        #times_in = time_qs.filter(date=date).filter(out=False).order_by('time')
+
         times_in = time_qs.filter(time=obj.time).filter(
             out=False).order_by('time')
         print('times_in')
         print(times_in)
         times_out = time_qs.filter(time__gt=obj.time).filter(
             out=True).order_by('time')
-        # times_out = time_qs.filter(time__gt=obj.time).filter(
-        #    out=True).order_by('time')
-        print('times_out')
-        print(times_out)
         times_all = time_qs.filter(date=date).order_by('time')
-        print('times_all')
-        print(times_all)
         obj.time_in = None
         obj.time_out = None
         obj.hours = 0
@@ -323,17 +300,9 @@ def hours_vs_date_given_employee(present_qs, time_qs, admin=True):
             print('controla la entrada')
             obj.time_in = times_in.last().time
 
-            print('obj.times in')
-            print(obj.time_in)
-
         if (len(times_out) > 0):
             print('controla salida')
             obj.time_out = times_out[0].time
-            print("obj.time_out")
-            print(obj.time_out)
-            print(obj.id)
-            print(obj.time)
-            print("obj.time_out")
 
         else:
             print("No hay salida para el present")
@@ -378,9 +347,7 @@ def hours_vs_date_given_employee(present_qs, time_qs, admin=True):
         plt.savefig(
             './recognition/static/recognition/img/attendance_graphs/employee_login/1.png')
         plt.close()
-    print("@@@@@@@@@")
-    for r in qs:
-        print(r)
+
     return qs
 
 
@@ -576,7 +543,7 @@ def add_photos(request):
             return redirect('add-photos')
         else:
             messages.warning(
-                request, f'No such username found. Please register employee first.')
+                request, f'No se encuentra este nombre de usuario por favor realize el registro.')
             return redirect('dashboard')
 
     else:
@@ -589,7 +556,7 @@ def mark_your_attendance(request):
 
     detector = dlib.get_frontal_face_detector()
 
-    # Add path to the shape predictor ######CHANGE TO RELATIVE PATH LATER
+    # Anade el predictor con los 68 puntos princpales del rostro
     predictor = dlib.shape_predictor(
         'face_recognition_data/shape_predictor_68_face_landmarks.dat')
     svc_save_path = "face_recognition_data/svc.sav"
@@ -610,7 +577,7 @@ def mark_your_attendance(request):
         count[encoder.inverse_transform([i])[0]] = 0
         present[encoder.inverse_transform([i])[0]] = False
 
-    vs = VideoStream(src=0).start()
+    vs = VideoStream(src=1).start()
 
     sampleNum = 0
 
@@ -645,7 +612,6 @@ def mark_your_attendance(request):
                 if count[pred] == 4 and (time.time()-start[pred]) > 1.2:
                     count[pred] = 0
                 else:
-                    # if count[pred] == 4 and (time.time()-start) <= 1.5:
                     present[pred] = True
                     log_time[pred] = datetime.datetime.now()
                     count[pred] = count.get(pred, 0) + 1
@@ -658,26 +624,21 @@ def mark_your_attendance(request):
                 cv2.putText(frame, str(person_name), (x+6, y+h-6),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-            # cv2.putText()
-            # Before continuing to the next loop, I want to give it a little pause
-            # waitKey of 100 millisecond
-            # cv2.waitKey(50)
-
-        # Showing the image in another window
-        # Creates a window with window name "Face" and with the image img
+        # Mostrando la imagen en una ventana
+        # Se crea una ventana con el nombre de la accion y la accion necesaria para salir
         cv2.imshow("Marca tu entrada - Presiona q para salir", frame)
-        # Before closing it we need to give a wait command, otherwise the open cv wont work
+        # Antes de cerrar se necesita dar un compando de espera, caso contrario opencv no funcionara
         # @params with the millisecond of delay 1
-        # cv2.waitKey(1)
-        # To get out of the loop
+        # @params con los millisegundos en un delay de 1
+        # para salir del bucle
         key = cv2.waitKey(50) & 0xFF
         if (key == ord("q")):
             break
 
-    # Stoping the videostream
+    # Para el stream
     vs.stop()
 
-    # destroying all the windows
+    # Se sale de todas las ventanas
     cv2.destroyAllWindows()
     print("##############################")
     print(present)
@@ -711,7 +672,7 @@ def mark_your_attendance_out(request):
         count[encoder.inverse_transform([i])[0]] = 0
         present[encoder.inverse_transform([i])[0]] = False
 
-    vs = VideoStream(src=0).start()
+    vs = VideoStream(src=1).start()
 
     sampleNum = 0
 

@@ -2,7 +2,6 @@ from django.forms import ModelForm
 from django.contrib.auth.models import User
 from django import forms
 from users.models import Horarios, Asignacion
-#from django.contrib.admin.widgets import AdminDateWidget
 
 
 class usernameForm(forms.Form):
@@ -16,7 +15,6 @@ class DateForm(forms.Form):
 
 class UsernameAndDateForm(forms.Form):
     username = forms.CharField(max_length=30, label="Nombre de usuario")
-    #course = forms.CharField(max_length=255, label="Asignatura")
     date_from = forms.DateField(widget=forms.SelectDateWidget(
         empty_label=("Choose Year", "Choose Month", "Choose Day")), label="Desde")
     date_to = forms.DateField(widget=forms.SelectDateWidget(
